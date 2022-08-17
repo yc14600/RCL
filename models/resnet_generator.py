@@ -125,11 +125,11 @@ class ResNet18Enc(nn.Module):
 
     def forward(self, x):
         x = self.features1(x)
-        print(x.size())
+
         x = F.adaptive_avg_pool2d(x, 1)
         x = x.view(x.size(0), -1)
         x = self.features2(x)
-        print(x.size())
+
         mu = x[:, :self.z_dim]
         logvar = x[:, self.z_dim:]
         return mu, logvar
@@ -196,13 +196,15 @@ MSE_loss = nn.MSELoss(reduction="sum")
 def VAE_loss(image, forward_output):
     """Loss for the Variational AutoEncoder."""
     # Binary Cross Entropy for batch
-    reconstruction, mu, logvar = forward_output
-    BCE = MSE_loss(input=reconstruction.view(-1, 32*32*3), target=image.view(-1, 32*32*3),
-                                 reduction='sum')
-    # Closed-form KL Divergence
-    KLD = 0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    print(BCE, KLD)
-    return BCE - KLD
+    # reconstruction, mu, logvar = forward_output[0]
+    # BCE = MSE_loss(input=reconstruction.view(-1, 32*32*3), target=image.view(-1, 32*32*3))
+    # # Closed-form KL Divergence
+    # KLD = 0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    # print(BCE, KLD)
+    reconstruction = forward_output[0]
+    BCE = MSE_loss(reconstruction, image)
+
+    return BCE
 
 
 __all__ = ["ResnetVAE", "VAE_loss"]

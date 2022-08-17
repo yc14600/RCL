@@ -6,7 +6,7 @@ from models.resnet_generator import ResnetVAE
 from models.resnet_generator import VAE_loss as VAE_LOSS
 from benchmarks.SplitCifar import *
 from avalanche.logging import TensorboardLogger, TextLogger
-from training.VAEtraining import VAETraining as VAETRAINING
+from training.VAEtraining import VAEEWCTraining as VAETRAINING
 from torch.optim import Adam
 from avalanche.training.plugins import (
     EvaluationPlugin,
@@ -80,8 +80,8 @@ eval_plugin = EvaluationPlugin(
 
 cl_strategy = VAETRAINING(model, optimizer=Adam(model.parameters(), lr=0.001, weight_decay=1e-5),
                               criterion=VAE_LOSS,
-                              train_epochs=60, mem_size=1000, device=device, evaluator=eval_plugin, train_mb_size=100,
-                              eval_mb_size=100)
+                              train_epochs=10, mem_size=1000, device=device, evaluator=eval_plugin, train_mb_size=100,
+                              eval_mb_size=100, ewc_lambda=0.1)
 
 # Continual learning strategy evaluator=eval_plugin
 
@@ -89,7 +89,7 @@ cl_strategy = VAETRAINING(model, optimizer=Adam(model.parameters(), lr=0.001, we
 
 
 
-metrics = []
+representations = []
 counter = 0
 os.mkdir(os.getcwd() + '/results_images')
 os.mkdir(os.getcwd() + '/results_images/images_previous')
@@ -110,9 +110,21 @@ for train_exp, test_exp in zip(train_stream, test_stream):
     print("End decoder training" + str(counter))
     #for i in encoder_model.features.parameters():
         #i.requires_grad = True
-    metric, images, results = cl_strategy.eval(test_exp)
-    images.pop()
-    results.pop()
+    representations, images, results = cl_strategy.eval(test_exp)
+    # images.pop()
+    # results.pop()
+    # before = len(representations) - 5
+    # after = len(representations) - 5 + experience_number
+    # representations = representations[before:after]
+    # images = images[before: after]
+    # results = results[before: after]
+    images = [x for xs in images for x in xs]
+    representations = [x for xs in representations for x in xs]
+    results = [x for xs in results for x in xs]
+    # experience_number += 1
+    print(results[0].size())
+
+
     channels, size_x, size_y = results[0].size()[1], results[0].size()[2], results[0].size()[3]
     results=torch.stack(results).view(-1, channels, size_x, size_y)
     images =torch.stack(images).view(-1, channels, size_x, size_y)

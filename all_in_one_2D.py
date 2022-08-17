@@ -66,7 +66,7 @@ eval_plugin = EvaluationPlugin(
 optimizer = SGD(encoder_model.parameters(), lr=0.005, momentum=0.9)
 criterion = CrossEntropyLoss()
 encoder_strategy = Replay(
-    encoder_model, optimizer, criterion, train_epochs=5, mem_size=500,  train_mb_size=50, eval_mb_size=50,
+    encoder_model, optimizer, criterion, train_epochs=1, mem_size=500,  train_mb_size=50, eval_mb_size=50,
     device=device, evaluator=eval_plugin)
 # train and test loop over the stream of experiences
 
@@ -82,7 +82,7 @@ eval_plugin = EvaluationPlugin(
 
 cl_strategy = VAEReplayTraining(model, optimizer=Adam(model.parameters(), lr=0.001, weight_decay=1e-5),
                           criterion=VAE_LOSS,
-                          train_epochs=10, device=device, mem_size=1000, evaluator=eval_plugin, train_mb_size=100,
+                          train_epochs=1, device=device, mem_size=1000, evaluator=eval_plugin, train_mb_size=100,
                           eval_mb_size=100)
 # Continual learning strategy evaluator=eval_plugin
 
@@ -119,6 +119,7 @@ for train_exp, test_exp in zip(train_stream, test_stream):
         i.requires_grad = True
 
     representations, images, results = cl_strategy.eval(test_stream_2)
+
     before = len(representations)-5
     after = len(representations)-5+ experience_number
     representations = representations[before:after]
