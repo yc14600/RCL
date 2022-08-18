@@ -1,17 +1,15 @@
 import copy
+import os
+import argparse
+import numpy as np
 
 import torch
 from models.encoder_model import *
 from models.generator import MlpVAE as MlpVAE_model
 from models.generator import VAE_loss as VAE_LOSS
 from benchmarks.SplitMnist import *
-<<<<<<< HEAD
 from avalanche.logging import TensorboardLogger, TextLogger, CSVLogger
 from training.VAEtraining import VAEReplayTraining, VAENaiveTraining
-=======
-from avalanche.logging import TensorboardLogger, TextLogger
-from training.VAEtraining import VAEReplayTraining, VAECWRTraining, VAENaiveTraining, VAEEWCTraining, VAELWFTraining
->>>>>>> 5b5bf6f07bf158beebad92b0186b6b2de460fd5b
 from training.classificator_training import LWF, Replay, EWC, Naive, CWR
 from torch.optim import Adam
 from avalanche.training.plugins import (
@@ -23,7 +21,6 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from encoder_decoder_to_image import image_generator
 from avalanche.logging import InteractiveLogger
-import os
 from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,\
     loss_metrics, StreamConfusionMatrix
 from utils import *
@@ -72,18 +69,18 @@ if args.model_type == 'MLP':
     encoder_model = encoder_model(input_size = in_dim, shape=shape, latent_dim=args.z_dim)
 
 # CL Benchmark Creation
-
-perm_mnist = SplitMNIST(n_experiences=5, dataset_root='images')
-#perm_mnist = SplitCIFAR10(n_experiences=1)
-train_stream = perm_mnist.train_stream
-test_stream = perm_mnist.test_stream
+if args.benchmark == 'splitmnist':
+    benchmark = SplitMNIST(n_experiences=args.T, dataset_root=args.data_path)
+#benchmark = SplitCIFAR10(n_experiences=1)
+train_stream = benchmark.train_stream
+test_stream = benchmark.test_stream
 
 
 # log to Tensorboard
 #tb_logger = TensorboardLogger()
 
 # log to text file
-text_logger = TextLogger(open('log.txt', 'a'))
+#text_logger = TextLogger(open(os.path.join(rpath,'log.txt'), 'a'))
 eval_plugin = EvaluationPlugin(
     # accuracy after each training epoch
     # and after each evaluation experience
@@ -94,13 +91,13 @@ eval_plugin = EvaluationPlugin(
     # catastrophic forgetting after each evaluation
     # experience
     forgetting_metrics(experience=True, stream=True),
-    StreamConfusionMatrix(num_classes=10, save_image=False),
+    StreamConfusionMatrix(num_classes=args.C, save_image=False),
     # add as many metrics as you like
-    loggers=[InteractiveLogger(), text_logger, TensorboardLogger()],
-    benchmark = perm_mnist
+    loggers=[InteractiveLogger(), CSVLogger(log_folder=rpath)],
+    benchmark = benchmark
 )
 
-optimizer = SGD(encoder_model.parameters(), lr=0.005, momentum=0.9)
+optimizer = SGD(encoder_model.parameters(), lr=args.learning_rate, momentum=0.9)
 criterion = CrossEntropyLoss()
 
 encoder_strategy = baselines[args.strategy_type](
@@ -111,11 +108,11 @@ encoder_strategy = baselines[args.strategy_type](
 
 
 # log to text file
-text_logger = TextLogger(open('log.txt', 'a'))
+#text_logger = TextLogger(open(os.path.join(dpath,'log.txt'), 'a'))
 eval_plugin = EvaluationPlugin(
-    loss_metrics(minibatch=True, stream=True),
-    loggers=[InteractiveLogger(), text_logger, TensorboardLogger()],
-    benchmark = perm_mnist
+    loss_metrics(minibatch=True, stream=True,experience=True),
+    loggers=[InteractiveLogger(), CSVLogger(log_folder=dpath)],
+    benchmark = benchmark
 )
 if args.decoder_strategy == 'replay':
     decoder_strategy = VAEReplayTraining(model, optimizer=Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5),
@@ -137,9 +134,8 @@ else:
 metrics = []
 counter = 0
 experience_number = 1
-os.mkdir(os.getcwd() + '/results_images')
-os.mkdir(os.getcwd() + '/results_images/images_previous')
-os.mkdir(os.getcwd() + '/results_images/images_after')
+
+
 test_stream_2 = copy.deepcopy(test_stream)
 for train_exp, test_exp in zip(train_stream, test_stream):
     counter += 1
@@ -153,16 +149,16 @@ for train_exp, test_exp in zip(train_stream, test_stream):
         i.requires_grad = False
 
     model.encoder.encode = encoder_model.features
-    cl_strategy.model = model
+    decoder_strategy.model = model
 
     print("Begin decoder training"+str(counter))
-    cl_strategy.train(train_exp)
+    decoder_strategy.train(train_exp)
     print("End decoder training" + str(counter))
 
     for i in encoder_model.features.parameters():
         i.requires_grad = True
 
-    representations, images, results = cl_strategy.eval(test_stream_2)
+    representations, images, results = decoder_strategy.eval(test_stream_2)
 
     before = len(representations)-5
     after = len(representations)-5+ experience_number
@@ -179,7 +175,7 @@ for train_exp, test_exp in zip(train_stream, test_stream):
     images =torch.stack(images).view(-1, channels, size_x, size_y)
     indexes = torch.randperm(results.shape[0])
     results, images = results[indexes], images[indexes]
-    image_generator(counter, images, results)
+    image_generator(counter, images, results,path=dpath,device=args.device)
 
 
-torch.save(model.state_dict(), os.getcwd()+'/encoder-decoder_model.pth')
+#torch.save(model.state_dict(),os.path.join(rpath,'encoder-decoder_model.pth'))
