@@ -65,9 +65,9 @@ eval_plugin = EvaluationPlugin(
 
 optimizer = SGD(encoder_model.parameters(), lr=0.005, momentum=0.9)
 criterion = CrossEntropyLoss()
-encoder_strategy = Replay(
+encoder_strategy = EWC(
     encoder_model, optimizer, criterion, train_epochs=1, mem_size=500,  train_mb_size=50, eval_mb_size=50,
-    device=device, evaluator=eval_plugin)
+    device=device, evaluator=eval_plugin, ewc_lambda=1)
 # train and test loop over the stream of experiences
 
 
@@ -80,10 +80,10 @@ eval_plugin = EvaluationPlugin(
     benchmark = perm_mnist
 )
 
-cl_strategy = VAEReplayTraining(model, optimizer=Adam(model.parameters(), lr=0.001, weight_decay=1e-5),
+cl_strategy = VAEEWCTraining(model, optimizer=Adam(model.parameters(), lr=0.001, weight_decay=1e-5),
                           criterion=VAE_LOSS,
                           train_epochs=1, device=device, mem_size=1000, evaluator=eval_plugin, train_mb_size=100,
-                          eval_mb_size=100)
+                          eval_mb_size=100, ewc_lambda=1)
 # Continual learning strategy evaluator=eval_plugin
 
 

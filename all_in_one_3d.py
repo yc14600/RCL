@@ -14,7 +14,7 @@ from avalanche.training.plugins import (
 )
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from avalanche.training import Replay
+from avalanche.training import Replay, EWC
 from encoder_decoder_to_image import image_generator
 from avalanche.logging import InteractiveLogger
 import os
@@ -28,14 +28,14 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #model
 #model = ResnetVAE(z_dim=20)
 model = ResnetVAE(z_dim=32)
-#encoder_model = ResNetEncoder(nclasses=10, z_dim=10)
+encoder_model = ResNetEncoder(nclasses=10, z_dim=32)
 
 
 
 
 # CL Benchmark Creation
 
-perm_mnist = SplitCIFAR10(n_experiences=1)
+perm_mnist = SplitCIFAR10(n_experiences=5, dataset_root='images')
 train_stream = perm_mnist.train_stream
 test_stream = perm_mnist.test_stream
 
@@ -61,11 +61,11 @@ eval_plugin = EvaluationPlugin(
     benchmark = perm_mnist
 )
 
-#optimizer = SGD(encoder_model.parameters(), lr=0.005, momentum=0.9)
-#criterion = CrossEntropyLoss()
-#encoder_strategy = Replay(
-    #encoder_model, optimizer, criterion, mem_size=500, train_epochs=5, train_mb_size=50, eval_mb_size=50,
-    #device=device, evaluator=eval_plugin)
+optimizer = SGD(encoder_model.parameters(), lr=0.005, momentum=0.9)
+criterion = CrossEntropyLoss()
+encoder_strategy = EWC(
+    encoder_model, optimizer, criterion, train_epochs=5,  train_mb_size=50, eval_mb_size=50,
+    device=device, evaluator=eval_plugin, ewc_lambda=1)
 # train and test loop over the stream of experiences
 
 
@@ -81,7 +81,7 @@ eval_plugin = EvaluationPlugin(
 cl_strategy = VAETRAINING(model, optimizer=Adam(model.parameters(), lr=0.001, weight_decay=1e-5),
                               criterion=VAE_LOSS,
                               train_epochs=10, mem_size=1000, device=device, evaluator=eval_plugin, train_mb_size=100,
-                              eval_mb_size=100, ewc_lambda=0.1)
+                              eval_mb_size=100, ewc_lambda=1)
 
 # Continual learning strategy evaluator=eval_plugin
 
@@ -94,23 +94,29 @@ counter = 0
 os.mkdir(os.getcwd() + '/results_images')
 os.mkdir(os.getcwd() + '/results_images/images_previous')
 os.mkdir(os.getcwd() + '/results_images/images_after')
+test_stream_2 = copy.deepcopy(test_stream)
 for train_exp, test_exp in zip(train_stream, test_stream):
     counter += 1
     train_exp_2 = copy.deepcopy(train_exp)
-    #print("Begin encoder training "+str(counter))
-    #encoder_strategy.train(train_exp)
-    #print("End encoder training "+str(counter))
-    #for i in encoder_model.features.parameters():
-        #i.requires_grad = False
-    #model.encoder.features1 = encoder_model.features1
-    #model.encoder.features2 = encoder_model.features2
-    #cl_strategy.model = model
+    print("Begin encoder training "+str(counter))
+    encoder_strategy.train(train_exp)
+    encoder_strategy.eval(test_stream)
+    print("End encoder training "+str(counter))
+    for i in encoder_model.features1.parameters():
+        i.requires_grad = False
+    for i in encoder_model.features2.parameters():
+        i.requires_grad = False
+    model.encoder.features1 = encoder_model.features1
+    model.encoder.features2 = encoder_model.features2
+    cl_strategy.model = model
     print("Begin decoder training"+str(counter))
-    cl_strategy.train(train_exp_2)
+    cl_strategy.train(train_exp)
     print("End decoder training" + str(counter))
-    #for i in encoder_model.features.parameters():
-        #i.requires_grad = True
-    representations, images, results = cl_strategy.eval(test_exp)
+    for i in encoder_model.features1.parameters():
+        i.requires_grad = True
+    for i in encoder_model.features2.parameters():
+        i.requires_grad = True
+    representations, images, results = cl_strategy.eval(test_stream_2)
     # images.pop()
     # results.pop()
     # before = len(representations) - 5
@@ -122,7 +128,6 @@ for train_exp, test_exp in zip(train_stream, test_stream):
     representations = [x for xs in representations for x in xs]
     results = [x for xs in results for x in xs]
     # experience_number += 1
-    print(results[0].size())
 
 
     channels, size_x, size_y = results[0].size()[1], results[0].size()[2], results[0].size()[3]
