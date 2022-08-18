@@ -249,10 +249,10 @@ class SupervisedTemplate(BaseSGDTemplate):
         mb_x_2 = copy.deepcopy(self.mb_x)
 
         '''BHB: for 3d'''
-        mean, logvar = self.model.encoder(self.mb_x)
-        representations = F.relu(self.model.reparameterize(mean, logvar))
+        #mean, logvar = self.model.encoder(self.mb_x)
+        #representations = F.relu(self.model.reparameterize(mean, logvar))
         '''BHB: for 2d'''
-        # representations = F.relu(self.model.encoder(self.mb_x))
+        representations = F.relu(self.model.encoder(self.mb_x))
 
         reconstruction = avalanche_forward(self.model, mb_x_2, self.mb_task_id)
         return representations, reconstruction

@@ -33,7 +33,8 @@ class encoder_model(nn.Module, BaseModel):
         self,
         num_classes=10,
         input_size=28 * 28,
-        shape = (1, 28, 28)
+        shape = (1, 28, 28),
+        latent_dim = 128
     ):
         """
         :param num_classes: output size
@@ -44,7 +45,7 @@ class encoder_model(nn.Module, BaseModel):
         """
         super().__init__()
         flattened_size = torch.Size(shape).numel()
-        latent_dim = 128
+        #latent_dim = 128
         layers = nn.Sequential(
             *(
                 Flatten(),

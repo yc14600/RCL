@@ -9,7 +9,7 @@ from models.generator import MlpVAE as MlpVAE_model
 from models.generator import VAE_loss as VAE_LOSS
 from benchmarks.SplitMnist import *
 from avalanche.logging import TensorboardLogger, TextLogger, CSVLogger
-from training.VAEtraining import VAEReplayTraining, VAECWRTraining, VAENaiveTraining, VAEEWCTraining, VAELWFTraining
+from training.VAEtraining import VAEReplayTraining, VAENaiveTraining
 from training.classificator_training import LWF, Replay, EWC, Naive, CWR
 from torch.optim import Adam
 from avalanche.training.plugins import (
@@ -25,6 +25,8 @@ from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,\
     loss_metrics, StreamConfusionMatrix
 from utils import *
 
+baselines ={'replay':Replay,'ewc':EWC,'cwr':CWR,'lwf':LWF}
+
 
 parser = argparse.ArgumentParser()
 
@@ -34,6 +36,7 @@ parser.add_argument('-rpth','--result_path', default='./results', type=str, help
 parser.add_argument('-dpth','--data_path', default='../../dataset', type=str, help='path to dataset')
 parser.add_argument('-ep','--epoch', default=10, type=int, help='number of epochs')
 parser.add_argument('-stype','--strategy_type', default='replay', type=str, help='continual learning strategy type')
+parser.add_argument('-dstype','--decoder_strategy', default='replay', type=str, help='continual learning strategy type')
 parser.add_argument('-bmk','--benchmark', default='splitmnist', type=str, help='benchmark')
 parser.add_argument('-T','--T', default=5, type=int, help='number of tasks')
 parser.add_argument('-C','--C', default=10, type=int, help='number of classes')
@@ -55,17 +58,15 @@ np.random.seed(seed)
 
 # Config
 device = torch.device(args.device)
+rpath,dpath = config_result_path(args)
 
 #model
 #model = ResnetVAE(z_dim=20)
 if args.model_type == 'MLP':
-    model = MlpVAE_model(shape=(1, 28, 28), n_classes=args.C)
-
-
-encoder_model = encoder_model()
-
-
-rpath,dpath = config_result_path(args)
+    in_dim = 784
+    shape = (1, 28, 28)
+    model = MlpVAE_model(shape=shape, n_classes=args.C,latent_dim=args.z_dim)
+    encoder_model = encoder_model(input_size = in_dim, shape=shape, latent_dim=args.z_dim)
 
 # CL Benchmark Creation
 if args.benchmark == 'splitmnist':
@@ -76,7 +77,7 @@ test_stream = benchmark.test_stream
 
 
 # log to Tensorboard
-tb_logger = TensorboardLogger()
+#tb_logger = TensorboardLogger()
 
 # log to text file
 #text_logger = TextLogger(open(os.path.join(rpath,'log.txt'), 'a'))
@@ -98,8 +99,8 @@ eval_plugin = EvaluationPlugin(
 
 optimizer = SGD(encoder_model.parameters(), lr=args.learning_rate, momentum=0.9)
 criterion = CrossEntropyLoss()
-if args.strategy_type == 'replay':
-    encoder_strategy = Replay(
+
+encoder_strategy = baselines[args.strategy_type](
         encoder_model, optimizer, criterion, train_epochs=1, mem_size=args.mem_size,  train_mb_size=args.batch_size, eval_mb_size=args.batch_size,
         device=device, evaluator=eval_plugin)
 # train and test loop over the stream of experiences
@@ -113,12 +114,18 @@ eval_plugin = EvaluationPlugin(
     loggers=[InteractiveLogger(), CSVLogger(log_folder=dpath)],
     benchmark = benchmark
 )
-if args.strategy_type == 'replay':
+if args.decoder_strategy == 'replay':
     decoder_strategy = VAEReplayTraining(model, optimizer=Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5),
                           criterion=VAE_LOSS,
                           train_epochs=args.epoch, device=device, mem_size=args.mem_size, evaluator=eval_plugin, train_mb_size=args.batch_size,
                           eval_mb_size=args.batch_size)
-# Continual learning strategy evaluator=eval_plugin
+elif args.decoder_strategy == 'naive':
+    decoder_strategy = VAENaiveTraining(model, optimizer=Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5),
+                          criterion=VAE_LOSS,
+                          train_epochs=args.epoch, device=device, evaluator=eval_plugin, train_mb_size=args.batch_size,
+                          eval_mb_size=args.batch_size)
+else:
+    raise NotImplementedError('Not supported type.')
 
 
 

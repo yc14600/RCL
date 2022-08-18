@@ -52,12 +52,12 @@ class VAEMLPDecoder(nn.Module):
     :param nhid: Dimension of input.
     """
 
-    def __init__(self, shape, nhid=16):
+    def __init__(self, shape, latent_dim=128):
         super(VAEMLPDecoder, self).__init__()
         flattened_size = torch.Size(shape).numel()
         self.shape = shape
         self.decode = nn.Sequential(
-            MLP([nhid, 64, 128, 256, flattened_size], last_activation=False),
+            MLP([latent_dim, 64, 128, 256, flattened_size], last_activation=False),
             nn.Sigmoid(),
         )
 
@@ -72,15 +72,15 @@ class VAEMLPDecoder(nn.Module):
 
 
 class MlpVAE(nn.Module):
-    def __init__(self, shape, n_classes=10, device="cpu"):
+    def __init__(self, shape,latent_dim=128, n_classes=10, device="cpu"):
         """Variational Auto-Encoder Class"""
         super(MlpVAE, self).__init__()
         # Encoding Layers
-        e_hidden = 128  # Number of hidden units in the encoder. See AEVB paper page 7, section "Marginal Likelihood"
-        latent_dim = 16
-        self.encoder = VAEMLPEncoder(shape, e_hidden)
-        self.e_hidden2mean = MLP([e_hidden, latent_dim], last_activation=False)
-        self.e_hidden2logvar = MLP([e_hidden, latent_dim], last_activation=False)
+        #e_hidden = 128  # Number of hidden units in the encoder. See AEVB paper page 7, section "Marginal Likelihood"
+        self.latent_dim = latent_dim
+        self.encoder = VAEMLPEncoder(shape, latent_dim)
+        #self.e_hidden2mean = MLP([e_hidden, latent_dim], last_activation=False)
+        #self.e_hidden2logvar = MLP([e_hidden, latent_dim], last_activation=False)
 
         # Decoding Layers
         self.decoder = VAEMLPDecoder(shape, latent_dim)
@@ -90,14 +90,14 @@ class MlpVAE(nn.Module):
         #x = x.view(-1, 784)
 
         # Feed x into Encoder to obtain mean and logvar
-        x = F.relu(self.encoder(x))
-        mu, logvar = self.e_hidden2mean(x), self.e_hidden2logvar(x)
+        z = F.relu(self.encoder(x))
+        # mu, logvar = self.e_hidden2mean(x), self.e_hidden2logvar(x)
 
-        # Sample z from latent space using mu and logvar
-        if self.training:
-            z = torch.randn_like(mu).mul(torch.exp(0.5 * logvar)).add_(mu)
-        else:
-            z = mu
+        # # Sample z from latent space using mu and logvar
+        # if self.training:
+        #     z = torch.randn_like(mu).mul(torch.exp(0.5 * logvar)).add_(mu)
+        # else:
+        #     z = mu
 
         # Feed z into Decoder to obtain reconstructed image. Use Sigmoid as output activation (=probabilities)
         x_recon = self.decoder(z)
