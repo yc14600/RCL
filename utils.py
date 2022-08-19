@@ -12,6 +12,7 @@ def config_path(rpath):
 def config_result_path(args):
     rpath = config_path(args.result_path)
     rpath = config_path(os.path.join(rpath,args.benchmark))
+    rpath = config_path(os.path.join(rpath,args.strategy_type+'_'+args.replay_strategy))
 
     folder_name = args.benchmark+'_'+args.strategy_type\
                     +'_'+args.model_type+'_T'+str(args.T)\

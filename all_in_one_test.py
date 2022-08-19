@@ -11,14 +11,13 @@ from torch.optim import SGD
 from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger
 from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,\
     loss_metrics, StreamConfusionMatrix
-from avalanche.training.plugins import (
-    EvaluationPlugin,
-
-)
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
+from avalanche.training.storage_policy import ClassBalancedBuffer
 from benchmarks.SplitMnist import *
 from benchmarks.SplitCifar import *
 from training.VAEtraining import VAEReplayTraining, VAENaiveTraining
-from training.classificator_training import LWF, Replay, EWC, CWR
+from training.classifier_training import TrainStrategy
 from models.encoder_model import *
 from models.generator import MlpAE 
 from models.generator import AE_LOSS
@@ -27,7 +26,6 @@ from models.resnet_generator import ResnetAE
 from encoder_decoder_to_image import image_generator
 from utils import *
 
-baselines ={'replay':Replay,'ewc':EWC,'cwr':CWR,'lwf':LWF}
 benchmarks = {'splitmnist':SplitMNIST,'splitcifar10':SplitCIFAR10}
 
 parser = argparse.ArgumentParser()
@@ -48,6 +46,8 @@ parser.add_argument('-bsz','--batch_size', default=128, type=int, help='batch si
 parser.add_argument('-zd','--z_dim', default=32, type=int, help='number of latent dimentions')
 parser.add_argument('-ms','--mem_size', default=100, type=int, help='memory size')
 parser.add_argument('-dvc','--device', default='cpu', type=str, help='device')
+parser.add_argument('-rpl','--replay_strategy', default='replay', type=str, help='replay strategy')
+
 
 
 args = parser.parse_args()
@@ -104,9 +104,19 @@ eval_plugin = EvaluationPlugin(
 optimizer = SGD(encoder_model.parameters(), lr=args.learning_rate, momentum=0.9)
 criterion = CrossEntropyLoss()
 
-encoder_strategy = baselines[args.strategy_type](
-        encoder_model, optimizer, criterion, train_epochs=1, mem_size=args.mem_size,  train_mb_size=args.batch_size, eval_mb_size=args.batch_size,
-        device=device, evaluator=eval_plugin)
+if args.replay_strategy == 'replay':
+    plugins = [ReplayPlugin(mem_size=args.mem_size)]
+elif args.replay_strategy == 'gdumb':
+    gdumb = ClassBalancedBuffer(
+            max_size=args.mem_size, adaptive_size=True
+        )
+    plugins = [ReplayPlugin(mem_size=args.mem_size,storage_policy=gdumb)]
+else:
+    plugins = None
+    
+encoder_strategy = TrainStrategy(args.strategy_type,
+        encoder_model, optimizer, criterion, train_epochs=args.epoch, train_mb_size=args.batch_size, eval_mb_size=args.batch_size,
+        device=device, plugins=plugins, evaluator=eval_plugin)
 # train and test loop over the stream of experiences
 
 
