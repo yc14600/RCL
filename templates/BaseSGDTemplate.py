@@ -270,15 +270,15 @@ class BaseSGDTemplate(BaseTemplate):
             self._before_eval_forward(**kwargs)
             representation, self.mb_output = self.eval_forward()
             representations_container.append(representation)
-            results_container.append(self.mb_output[0])
+            results_container.append(self.mb_output)
             self._after_eval_forward(**kwargs)
             self.loss = self.criterion()
-            self.task_losses.append((self.loss).item())
+            #self.task_losses.append((self.loss).item())
             self._after_eval_iteration(**kwargs)
-        self.task_losses.pop()
-        with open("results.txt", "a") as f:
-            f.write(str(sum(self.task_losses) / len(self.task_losses)) + "\n")
-        self.task_losses = []
+        #self.task_losses.pop()
+        #with open("results.txt", "a") as f:
+        #    f.write(str(sum(self.task_losses) / len(self.#task_losses)) + "\n")
+        #self.task_losses = []
 
         representations_container.pop()
         images_container.pop()

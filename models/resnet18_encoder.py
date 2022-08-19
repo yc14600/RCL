@@ -73,7 +73,7 @@ class ResNetEncoder(nn.Module):
         self.in_planes = 64
         self.z_dim = z_dim
         self.nclasses = nclasses
-        self.features1 = nn.Sequential(
+        self.resblocks = nn.Sequential(
             nn.Conv2d(nc, 64, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(),
@@ -83,8 +83,8 @@ class ResNetEncoder(nn.Module):
             self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2),
         )
 
-        self.features2 = nn.Linear(512, 2*z_dim)
-        self.classifier = nn.Linear(2*z_dim, nclasses)
+        self.features = nn.Linear(512, z_dim)
+        self.classifier = nn.Linear(z_dim, nclasses)
 
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1] * (num_Blocks - 1)
@@ -95,10 +95,10 @@ class ResNetEncoder(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.features1(x)
+        x = self.resblocks(x)
         x = F.adaptive_avg_pool2d(x, 1)
         x = x.view(x.size(0), -1)
-        x = self.features2(x)
+        x = self.features(x)
         x=self.classifier(x)
         return x
 

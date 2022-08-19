@@ -13,15 +13,11 @@ File to place any kind of generative models
 and their respective helper functions.
 """
 
-from abc import abstractmethod
-from matplotlib import transforms
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import transforms
-from torch.nn.functional import relu, avg_pool2d
-from avalanche.models.utils import MLP, Flatten
-from avalanche.models.base_model import BaseModel
+
 
 
 class ResizeConv2d(nn.Module):
@@ -103,7 +99,7 @@ class ResNet18Enc(nn.Module):
         super().__init__()
         self.in_planes = 64
         self.z_dim = z_dim
-        self.features1 = nn.Sequential(
+        self.resblocks = nn.Sequential(
             nn.Conv2d(nc, 64, kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(),
@@ -113,7 +109,7 @@ class ResNet18Enc(nn.Module):
             self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2),
         )
 
-        self.features2 = nn.Linear(512, 2 * z_dim)
+        self.features = nn.Linear(512, z_dim)
 
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1] * (num_Blocks - 1)
@@ -124,15 +120,14 @@ class ResNet18Enc(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.features1(x)
+        x = self.resblocks(x)
 
         x = F.adaptive_avg_pool2d(x, 1)
         x = x.view(x.size(0), -1)
-        x = self.features2(x)
+        x = self.features(x)
 
-        mu = x[:, :self.z_dim]
-        logvar = x[:, self.z_dim:]
-        return mu, logvar
+        
+        return x
 
 
 class ResNet18Dec(nn.Module):
@@ -173,7 +168,7 @@ class ResNet18Dec(nn.Module):
         return x
 
 
-class ResnetVAE(nn.Module):
+class ResnetAE(nn.Module):
 
     def __init__(self, z_dim=10):
         super().__init__()
@@ -181,30 +176,12 @@ class ResnetVAE(nn.Module):
         self.decoder = ResNet18Dec(z_dim=z_dim)
 
     def forward(self, x):
-        mean, logvar = self.encoder(x)
-        z = self.reparameterize(mean, logvar)
+        z = self.encoder(x)        
         x = self.decoder(z)
-        return x, mean, logvar
-
-    @staticmethod
-    def reparameterize(mean, logvar):
-        std = torch.exp(logvar / 2)  # in log-space, squareroot is divide by two
-        epsilon = torch.randn_like(std)
-        return epsilon * std + mean
-
-MSE_loss = nn.MSELoss(reduction="sum")
-def VAE_loss(image, forward_output):
-    """Loss for the Variational AutoEncoder."""
-    # Binary Cross Entropy for batch
-    # reconstruction, mu, logvar = forward_output[0]
-    # BCE = MSE_loss(input=reconstruction.view(-1, 32*32*3), target=image.view(-1, 32*32*3))
-    # # Closed-form KL Divergence
-    # KLD = 0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    # print(BCE, KLD)
-    reconstruction = forward_output[0]
-    BCE = MSE_loss(reconstruction, image)
-
-    return BCE
+        return x
 
 
-__all__ = ["ResnetVAE", "VAE_loss"]
+
+
+
+__all__ = ["ResnetAE"]

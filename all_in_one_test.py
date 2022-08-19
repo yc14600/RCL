@@ -1,32 +1,34 @@
 import copy
-import os
 import argparse
 import numpy as np
 
 import torch
-from models.encoder_model import *
-from models.generator import MlpVAE as MlpVAE_model
-from models.generator import VAE_loss as VAE_LOSS
-from benchmarks.SplitMnist import *
-from avalanche.logging import TensorboardLogger, TextLogger, CSVLogger
-from training.VAEtraining import VAEReplayTraining, VAENaiveTraining
-from training.classificator_training import LWF, Replay, EWC, Naive, CWR
 from torch.optim import Adam
+from torch.nn import CrossEntropyLoss
+from torch.optim import SGD
+
+
+from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger
+from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,\
+    loss_metrics, StreamConfusionMatrix
 from avalanche.training.plugins import (
     EvaluationPlugin,
 
 )
-
-from torch.nn import CrossEntropyLoss
-from torch.optim import SGD
+from benchmarks.SplitMnist import *
+from benchmarks.SplitCifar import *
+from training.VAEtraining import VAEReplayTraining, VAENaiveTraining
+from training.classificator_training import LWF, Replay, EWC, CWR
+from models.encoder_model import *
+from models.generator import MlpAE 
+from models.generator import AE_LOSS
+from models.resnet18_encoder import ResNetEncoder
+from models.resnet_generator import ResnetAE
 from encoder_decoder_to_image import image_generator
-from avalanche.logging import InteractiveLogger
-from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,\
-    loss_metrics, StreamConfusionMatrix
 from utils import *
 
 baselines ={'replay':Replay,'ewc':EWC,'cwr':CWR,'lwf':LWF}
-
+benchmarks = {'splitmnist':SplitMNIST,'splitcifar10':SplitCIFAR10}
 
 parser = argparse.ArgumentParser()
 
@@ -65,13 +67,15 @@ rpath,dpath = config_result_path(args)
 if args.model_type == 'MLP':
     in_dim = 784
     shape = (1, 28, 28)
-    model = MlpVAE_model(shape=shape, n_classes=args.C,latent_dim=args.z_dim)
+    model = MlpAE(shape=shape, n_classes=args.C,latent_dim=args.z_dim)
     encoder_model = encoder_model(input_size = in_dim, shape=shape, latent_dim=args.z_dim)
-
+elif args.model_type == 'resnet':
+    model = ResnetAE(z_dim=args.z_dim)
+    encoder_model = ResNetEncoder(nclasses=args.C, z_dim=args.z_dim)
+    
 # CL Benchmark Creation
-if args.benchmark == 'splitmnist':
-    benchmark = SplitMNIST(n_experiences=args.T, dataset_root=args.data_path)
-#benchmark = SplitCIFAR10(n_experiences=1)
+benchmark = benchmarks[args.benchmark](n_experiences=args.T, dataset_root=args.data_path)
+
 train_stream = benchmark.train_stream
 test_stream = benchmark.test_stream
 
@@ -116,12 +120,12 @@ eval_plugin = EvaluationPlugin(
 )
 if args.decoder_strategy == 'replay':
     decoder_strategy = VAEReplayTraining(model, optimizer=Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5),
-                          criterion=VAE_LOSS,
+                          criterion=AE_LOSS,
                           train_epochs=args.epoch, device=device, mem_size=args.mem_size, evaluator=eval_plugin, train_mb_size=args.batch_size,
                           eval_mb_size=args.batch_size)
 elif args.decoder_strategy == 'naive':
     decoder_strategy = VAENaiveTraining(model, optimizer=Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5),
-                          criterion=VAE_LOSS,
+                          criterion=AE_LOSS,
                           train_epochs=args.epoch, device=device, evaluator=eval_plugin, train_mb_size=args.batch_size,
                           eval_mb_size=args.batch_size)
 else:

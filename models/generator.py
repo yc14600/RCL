@@ -22,7 +22,7 @@ from torchvision import transforms
 from avalanche.models.utils import MLP, Flatten
 from avalanche.models.base_model import BaseModel
 
-class VAEMLPEncoder(nn.Module):
+class AEMLPEncoder(nn.Module):
     """
     Encoder part of the VAE, computer the latent represenations of the input.
     :param shape: Shape of the input to the network: (channels, height, width)
@@ -30,7 +30,7 @@ class VAEMLPEncoder(nn.Module):
     """
 
     def __init__(self, shape, latent_dim=128):
-        super(VAEMLPEncoder, self).__init__()
+        super(AEMLPEncoder, self).__init__()
         flattened_size = torch.Size(shape).numel()
         self.encode = nn.Sequential(
             Flatten(),
@@ -45,7 +45,7 @@ class VAEMLPEncoder(nn.Module):
         return x
 
 
-class VAEMLPDecoder(nn.Module):
+class AEMLPDecoder(nn.Module):
     """
     Decoder part of the VAE. Reverses Encoder.
     :param shape: Shape of output: (channels, height, width).
@@ -53,7 +53,7 @@ class VAEMLPDecoder(nn.Module):
     """
 
     def __init__(self, shape, latent_dim=128):
-        super(VAEMLPDecoder, self).__init__()
+        super(AEMLPDecoder, self).__init__()
         flattened_size = torch.Size(shape).numel()
         self.shape = shape
         self.decode = nn.Sequential(
@@ -71,19 +71,19 @@ class VAEMLPDecoder(nn.Module):
 
 
 
-class MlpVAE(nn.Module):
+class MlpAE(nn.Module):
     def __init__(self, shape,latent_dim=128, n_classes=10, device="cpu"):
         """Variational Auto-Encoder Class"""
-        super(MlpVAE, self).__init__()
+        super(MlpAE, self).__init__()
         # Encoding Layers
         #e_hidden = 128  # Number of hidden units in the encoder. See AEVB paper page 7, section "Marginal Likelihood"
         self.latent_dim = latent_dim
-        self.encoder = VAEMLPEncoder(shape, latent_dim)
+        self.encoder = AEMLPEncoder(shape, latent_dim)
         #self.e_hidden2mean = MLP([e_hidden, latent_dim], last_activation=False)
         #self.e_hidden2logvar = MLP([e_hidden, latent_dim], last_activation=False)
 
         # Decoding Layers
-        self.decoder = VAEMLPDecoder(shape, latent_dim)
+        self.decoder = AEMLPDecoder(shape, latent_dim)
 
     def forward(self, x):
         # Shape Flatten image to [batch_size, input_features]
@@ -102,21 +102,19 @@ class MlpVAE(nn.Module):
         # Feed z into Decoder to obtain reconstructed image. Use Sigmoid as output activation (=probabilities)
         x_recon = self.decoder(z)
 
-        return [x_recon]
-MSE_loss = nn.MSELoss(reduction="sum")
+        return x_recon
 
-def VAE_loss(image, forward_output):
+MSE_loss = nn.MSELoss(reduction="sum")
+def AE_LOSS(image, reconstruction):
     """Loss for the Variational AutoEncoder."""
     # Binary Cross Entropy for batch
-
-    reconstruction = forward_output[0]
     #BCE = F.binary_cross_entropy(input=reconstruction.view(-1, 28 * 28), target=image.view(-1, 28 * 28),
                                  #reduction='sum')
-    BCE = MSE_loss(reconstruction, image)
+    BCE = MSE_loss(reconstruction, image)/image.shape[0]
     # Closed-form KL Divergence
     #KLD = 0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    print(BCE)
+
     return BCE
 
 
-__all__ = ["MlpVAE", "VAE_loss"]
+__all__ = ["MlpAE", "AE_LOSS"]

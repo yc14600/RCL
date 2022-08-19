@@ -162,7 +162,7 @@ class EWCPlugin(SupervisedPlugin):
 
             optimizer.zero_grad()
             out = avalanche_forward(model, x, task_labels)
-            loss = criterion(out[0], [x])
+            loss = criterion(out, x)
             loss.backward()
 
             for (k1, p), (k2, imp) in zip(

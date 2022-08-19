@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt                # to plot our images
 import numpy as np
 import torch
 import os
-from models.generator import MlpVAE as MlpVAE_model
+
 
 def image_generator(counter, images, testset,path,device='cpu'):
     device = torch.device(device)
