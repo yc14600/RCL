@@ -116,6 +116,7 @@ class BaseSGDTemplate(BaseTemplate):
         self._stop_training = False
         self.eval_images_before = []
         self.eval_images = []
+        self.eval_labels = []
         self.representations = []
         self.task_losses = []
 
@@ -140,7 +141,7 @@ class BaseSGDTemplate(BaseTemplate):
         """
         super().eval(exp_list, **kwargs)
         #return self.evaluator.get_last_metrics()
-        return self.representations, self.eval_images_before, self.eval_images
+        return self.representations, self.eval_images_before, self.eval_images, self.eval_labels
 
     def _before_training_exp(self, **kwargs):
         self.make_train_dataloader(**kwargs)
@@ -263,8 +264,10 @@ class BaseSGDTemplate(BaseTemplate):
         representations_container = []
         images_container = []
         results_container = []
+        labels_container = []
         for self.mbatch in self.dataloader:
             images_container.append(self.mbatch[0])
+            labels_container.append(self.mbatch[1])
             self._unpack_minibatch()
             self._before_eval_iteration(**kwargs)
             self._before_eval_forward(**kwargs)
@@ -283,6 +286,8 @@ class BaseSGDTemplate(BaseTemplate):
         representations_container.pop()
         images_container.pop()
         results_container.pop()
+        labels_container.pop()
+        self.eval_labels.append(labels_container)
         self.eval_images_before.append(images_container)
         self.representations.append(representations_container)
         self.eval_images.append(results_container)

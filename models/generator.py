@@ -110,11 +110,11 @@ def AE_LOSS(image, reconstruction):
     # Binary Cross Entropy for batch
     #BCE = F.binary_cross_entropy(input=reconstruction.view(-1, 28 * 28), target=image.view(-1, 28 * 28),
                                  #reduction='sum')
-    BCE = MSE_loss(reconstruction, image)/image.shape[0]
+    AEL = MSE_loss(reconstruction, image)/image.shape[0]
     # Closed-form KL Divergence
     #KLD = 0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
-    return BCE
+    return AEL
 
 
 __all__ = ["MlpAE", "AE_LOSS"]

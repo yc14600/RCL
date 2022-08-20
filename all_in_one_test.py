@@ -31,11 +31,10 @@ benchmarks = {'splitmnist':SplitMNIST,'splitcifar10':SplitCIFAR10}
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-sd','--seed', default=0, type=int, help='random seed')
-parser.add_argument('-cuda','--use_cuda', default=False, type=str2bool, help='use cuda')
 parser.add_argument('-rpth','--result_path', default='./results', type=str, help='path to save results')
 parser.add_argument('-dpth','--data_path', default='../../dataset', type=str, help='path to dataset')
 parser.add_argument('-ep','--epoch', default=10, type=int, help='number of epochs')
-parser.add_argument('-stype','--strategy_type', default='replay', type=str, help='continual learning strategy type')
+parser.add_argument('-stype','--strategy_type', default='naive', type=str, help='continual learning strategy type')
 parser.add_argument('-dstype','--decoder_strategy', default='replay', type=str, help='continual learning strategy type')
 parser.add_argument('-bmk','--benchmark', default='splitmnist', type=str, help='benchmark')
 parser.add_argument('-T','--T', default=5, type=int, help='number of tasks')
@@ -63,15 +62,17 @@ device = torch.device(args.device)
 rpath,dpath = config_result_path(args)
 
 #model
-#model = ResnetVAE(z_dim=20)
-if args.model_type == 'MLP':
+
+if 'mnist' in args.benchmark:
+    args.model_type = 'MLP'
     in_dim = 784
     shape = (1, 28, 28)
     model = MlpAE(shape=shape, n_classes=args.C,latent_dim=args.z_dim)
-    encoder_model = encoder_model(input_size = in_dim, shape=shape, latent_dim=args.z_dim)
-elif args.model_type == 'resnet':
+    enc_model = encoder_model(input_size = in_dim, shape=shape, latent_dim=args.z_dim)
+elif 'cifar' in args.benchmark: 
+    args.model_type == 'resnet'
     model = ResnetAE(z_dim=args.z_dim)
-    encoder_model = ResNetEncoder(nclasses=args.C, z_dim=args.z_dim)
+    enc_model = ResNetEncoder(nclasses=args.C, z_dim=args.z_dim)
     
 # CL Benchmark Creation
 benchmark = benchmarks[args.benchmark](n_experiences=args.T, dataset_root=args.data_path)
@@ -101,7 +102,7 @@ eval_plugin = EvaluationPlugin(
     benchmark = benchmark
 )
 
-optimizer = SGD(encoder_model.parameters(), lr=args.learning_rate, momentum=0.9)
+optimizer = SGD(enc_model.parameters(), lr=args.learning_rate, momentum=0.9)
 criterion = CrossEntropyLoss()
 
 if args.replay_strategy == 'replay':
@@ -115,7 +116,7 @@ else:
     plugins = None
     
 encoder_strategy = TrainStrategy(args.strategy_type,
-        encoder_model, optimizer, criterion, train_epochs=args.epoch, train_mb_size=args.batch_size, eval_mb_size=args.batch_size,
+        enc_model, optimizer, criterion, train_epochs=args.epoch, train_mb_size=args.batch_size, eval_mb_size=args.batch_size,
         device=device, plugins=plugins, evaluator=eval_plugin)
 # train and test loop over the stream of experiences
 
@@ -142,54 +143,47 @@ else:
     raise NotImplementedError('Not supported type.')
 
 
-
-
-
-metrics = []
-counter = 0
-experience_number = 1
-
-
 test_stream_2 = copy.deepcopy(test_stream)
-for train_exp, test_exp in zip(train_stream, test_stream):
-    counter += 1
+for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     train_exp_2 = copy.deepcopy(train_exp)
-    print("Begin encoder training "+str(counter))
+    print("Begin encoder training "+str(e))
     encoder_strategy.train(train_exp)
     encoder_strategy.eval(test_stream)
-    print("End encoder training "+str(counter))
-    for i in encoder_model.features.parameters():
-        print(i)
+    print("End encoder training "+str(e))
+    for i in enc_model.features.parameters():
         i.requires_grad = False
 
-    model.encoder.encode = encoder_model.features
+    model.encoder.encode = enc_model.features
     decoder_strategy.model = model
 
-    print("Begin decoder training"+str(counter))
+    print("Begin decoder training"+str(e))
     decoder_strategy.train(train_exp)
-    print("End decoder training" + str(counter))
+    print("End decoder training" + str(e))
 
-    for i in encoder_model.features.parameters():
+    for i in enc_model.features.parameters():
         i.requires_grad = True
 
-    representations, images, results = decoder_strategy.eval(test_stream_2)
+    representations, images, results, labels = decoder_strategy.eval(test_stream_2)
 
-    before = len(representations)-5
-    after = len(representations)-5+ experience_number
-    representations = representations[before:after]
+    labels = labels[-args.T:]
+    representations = representations[-args.T:]
+
+    for rp,lbl in zip(representations,labels):
+        rp = torch.vstack(rp)
+        lbl = torch.concat(lbl)
+        representation_log(e+1,rp,lbl,rpath)
+    
+    before = len(representations)-args.T
+    after = len(representations)-args.T+ e+1
     images = images[before: after]
     results = results[before: after]
     images = [x for xs in images for x in xs]
-    representations = [x for xs in representations for x in xs]
     results = [x for xs in results for x in xs]
-    experience_number += 1
 
     channels, size_x, size_y = results[0].size()[1], results[0].size()[2], results[0].size()[3]
     results=torch.stack(results).view(-1, channels, size_x, size_y)
     images =torch.stack(images).view(-1, channels, size_x, size_y)
     indexes = torch.randperm(results.shape[0])
     results, images = results[indexes], images[indexes]
-    image_generator(counter, images, results,path=dpath,device=args.device)
+    image_generator(e+1, images, results,path=dpath,device=args.device)
 
-
-#torch.save(model.state_dict(),os.path.join(rpath,'encoder-decoder_model.pth'))

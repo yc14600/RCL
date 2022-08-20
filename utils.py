@@ -1,5 +1,5 @@
 import os
-
+import csv
 
 def config_path(rpath):
     try:
@@ -36,3 +36,14 @@ def str2bool(x):
         return False
     else:
         return True
+    
+
+def representation_log(t,reps,lbls,path):
+    
+    with open(os.path.join(path,'rep_log'+'_t'+str(t)+'.txt'),'a') as f:
+        writer = csv.writer(f,delimiter=',')
+        for l in set(lbls.numpy()):
+            writer.writerow(['label',l])
+            lrp = reps[lbls==l]
+            writer.writerow(['rep mean']+[lrp.mean(axis=0)])
+            writer.writerow(['rep std']+[lrp.std(axis=0)])
