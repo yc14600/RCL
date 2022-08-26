@@ -29,14 +29,16 @@ from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 train_strategies ={'ewc':EWCPlugin,'cwr':CWRStarPlugin,'lwf':LwFPlugin,
-                   'agem':AGEMPlugin,'rwalk':RWalkPlugin,'si':SynapticIntelligencePlugin
+                   'agem':AGEMPlugin,'rwalk':RWalkPlugin,'si':SynapticIntelligencePlugin,
+                   'gem':GEMPlugin,
                    }
 
 stg_params = {'ewc':{'ewc_lambda':0.4,'mode':"online",'decay_factor':0.1,'keep_importance_data':False},
                 'lwf':{'alpha':1, 'temperature':2},
                 'cwr':{'cwr_layer_name':None},
-                'rwalk':{'ewc_lambda':0.1, 'ewc_alpha':0.9, 'delta_t':10},
-                'agem':{'patterns_per_experience': 100, 'sample_size': 100},
+                'rwalk':{'ewc_lambda':0.01, 'ewc_alpha':0.99, 'delta_t':10},
+                'agem':{'patterns_per_experience': 200, 'sample_size': 100},
+                'gem':{'patterns_per_experience':400, 'memory_strength':0.8},
                 'si':{'si_lambda':0.0001}
                 }
 

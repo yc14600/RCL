@@ -132,10 +132,10 @@ class ResNet18Enc(nn.Module):
 
 class ResNet18Dec(nn.Module):
 
-    def __init__(self, num_Blocks=[2, 2, 2, 2], z_dim=10, nc=3):
+    def __init__(self, num_Blocks=[2, 2, 2, 2], z_dim=10, nc=3,img_dim=32):
         super().__init__()
         self.in_planes = 512
-
+        self.img_dim = img_dim
         self.linear = nn.Linear(z_dim, 512)
 
         self.layer4 = self._make_layer(BasicBlockDec, 256, num_Blocks[3], stride=2)
@@ -156,24 +156,25 @@ class ResNet18Dec(nn.Module):
         x = self.linear(z)
         x = x.view(z.size(0), 512, 1, 1)
         #scale factor 4 for 64*64 images
-        x = F.interpolate(x, scale_factor=2)
+        scale_factor = 2 if self.img_dim == 32 else 4
+        x = F.interpolate(x, scale_factor=scale_factor)
         x = self.layer4(x)
         x = self.layer3(x)
         x = self.layer2(x)
         x = self.layer1(x)
 
         x = torch.sigmoid(self.conv1(x))
-        x = x.view(x.size(0), 3, 32, 32)
+        x = x.view(x.size(0), 3, self.img_dim, self.img_dim)
 
         return x
 
 
 class ResnetAE(nn.Module):
 
-    def __init__(self, z_dim=10):
+    def __init__(self, z_dim=10,img_dim=32):
         super().__init__()
         self.encoder = ResNet18Enc(z_dim=z_dim)
-        self.decoder = ResNet18Dec(z_dim=z_dim)
+        self.decoder = ResNet18Dec(z_dim=z_dim,img_dim=img_dim)
 
     def forward(self, x):
         z = self.encoder(x)        
