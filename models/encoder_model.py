@@ -72,6 +72,9 @@ class encoder_model(nn.Module, BaseModel):
         x = x.view(x.size(0), self._input_size)
         x = self.features(x)
         return x
+    
+    def get_features(self,x):
+        return self.encode(x)
 
 
 __all__ = ["encoder_model"]
