@@ -15,8 +15,9 @@ from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,\
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
-from benchmarks.SplitMnist import *
-from benchmarks.SplitCifar import *
+#from benchmarks.SplitMnist import *
+#from benchmarks.SplitCifar import *
+from avalanche.benchmarks.classic import *
 from training.VAEtraining import VAEReplayTraining, VAENaiveTraining
 from training.classifier_training import TrainStrategy
 from models.encoder_model import *
@@ -27,7 +28,8 @@ from models.resnet_generator import ResnetAE
 from encoder_decoder_to_image import image_generator
 from utils import *
 
-benchmarks = {'splitmnist':SplitMNIST,'splitcifar10':SplitCIFAR10}
+benchmarks = {'splitmnist':SplitMNIST,'splitcifar10':SplitCIFAR10,\
+    'splitcifar100':SplitCIFAR100,'splittinyimagenet':SplitTinyImageNet}
 
 parser = argparse.ArgumentParser()
 
