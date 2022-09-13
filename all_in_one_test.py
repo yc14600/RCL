@@ -153,8 +153,8 @@ for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     encoder_strategy.train(train_exp)
     encoder_strategy.eval(test_stream)
     print("End encoder training "+str(e))
-    for i in enc_model.parameters():
-        i.requires_grad = False
+    #for i in enc_model.parameters():
+    #    i.requires_grad = False
 
     #model.encoder.features = enc_model.features
     #decoder_strategy.model = model
@@ -163,8 +163,8 @@ for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     decoder_strategy.train(train_exp)
     print("End decoder training" + str(e))
 
-    for i in enc_model.parameters():
-        i.requires_grad = True
+    #for i in enc_model.parameters():
+    #    i.requires_grad = True
 
     representations, images, results, labels = decoder_strategy.eval(test_stream_2)
 

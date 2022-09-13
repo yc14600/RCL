@@ -93,7 +93,8 @@ class MlpAE(nn.Module):
         #x = x.view(-1, 784)
 
         # Feed x into Encoder to obtain mean and logvar
-        z = self.encoder.encode(x)
+        with torch.no_grad():
+            z = self.encoder.encode(x)
         # mu, logvar = self.e_hidden2mean(x), self.e_hidden2logvar(x)
 
         # # Sample z from latent space using mu and logvar
