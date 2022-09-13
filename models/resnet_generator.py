@@ -180,7 +180,8 @@ class ResnetAE(nn.Module):
         self.decoder = ResNet18Dec(z_dim=z_dim,img_dim=img_dim)
 
     def forward(self, x):
-        z = self.encoder.encode(x)        
+        with torch.no_grad():
+            z = self.encoder.encode(x)        
         x = self.decoder(z)
         return x
 
