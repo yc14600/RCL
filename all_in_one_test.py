@@ -133,12 +133,12 @@ eval_plugin = EvaluationPlugin(
     benchmark = benchmark
 )
 if args.decoder_strategy == 'replay':
-    decoder_strategy = VAEReplayTraining(model, optimizer=Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5),
+    decoder_strategy = VAEReplayTraining(model, optimizer=Adam(model.decoder.parameters(), lr=args.learning_rate, weight_decay=1e-5),
                           criterion=AE_LOSS,
                           train_epochs=args.epoch, device=device, mem_size=args.mem_size, evaluator=eval_plugin, train_mb_size=args.batch_size,
                           eval_mb_size=args.batch_size)
 elif args.decoder_strategy == 'naive':
-    decoder_strategy = VAENaiveTraining(model, optimizer=Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-5),
+    decoder_strategy = VAENaiveTraining(model, optimizer=Adam(model.decoder.parameters(), lr=args.learning_rate, weight_decay=1e-5),
                           criterion=AE_LOSS,
                           train_epochs=args.epoch, device=device, evaluator=eval_plugin, train_mb_size=args.batch_size,
                           eval_mb_size=args.batch_size)
