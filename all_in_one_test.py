@@ -71,8 +71,9 @@ if 'mnist' in args.benchmark:
     enc_model = encoder_model(input_size = in_dim, shape=shape, latent_dim=args.z_dim)
 elif 'cifar' in args.benchmark: 
     args.model_type == 'resnet'
-    model = ResnetAE(z_dim=args.z_dim)
     enc_model = ResNetEncoder(nclasses=args.C, z_dim=args.z_dim)
+    model = ResnetAE(z_dim=args.z_dim,encoder=enc_model)
+    
     
 # CL Benchmark Creation
 benchmark = benchmarks[args.benchmark](n_experiences=args.T, dataset_root=args.data_path)
@@ -150,17 +151,17 @@ for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     encoder_strategy.train(train_exp)
     encoder_strategy.eval(test_stream)
     print("End encoder training "+str(e))
-    for i in enc_model.features.parameters():
+    for i in enc_model.parameters():
         i.requires_grad = False
 
-    model.encoder.encode = enc_model.features
-    decoder_strategy.model = model
+    #model.encoder.features = enc_model.features
+    #decoder_strategy.model = model
 
     print("Begin decoder training"+str(e))
     decoder_strategy.train(train_exp)
     print("End decoder training" + str(e))
 
-    for i in enc_model.features.parameters():
+    for i in enc_model.parameters():
         i.requires_grad = True
 
     representations, images, results, labels = decoder_strategy.eval(test_stream_2)

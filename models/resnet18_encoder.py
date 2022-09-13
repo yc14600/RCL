@@ -102,6 +102,13 @@ class ResNetEncoder(nn.Module):
         x = self.classifier(x)
         return x
 
+    def encode(self,x):
+        x = self.resblocks(x)
+        x = F.adaptive_avg_pool2d(x, 1)
+        x = x.view(x.size(0), -1)
+        x = self.features(x)
+        return x
+
 
 
 __all__ = ["ResNetEncoder"]

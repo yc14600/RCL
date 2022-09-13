@@ -109,7 +109,7 @@ class ResNet18Enc(nn.Module):
             self._make_layer(BasicBlockEnc, 512, num_Blocks[3], stride=2),
         )
 
-        self.features = nn.Linear(512, z_dim)
+        self.features = nn.Sequential(nn.Linear(512, z_dim),nn.ReLU(inplace=True))
 
     def _make_layer(self, BasicBlockEnc, planes, num_Blocks, stride):
         strides = [stride] + [1] * (num_Blocks - 1)
@@ -171,13 +171,16 @@ class ResNet18Dec(nn.Module):
 
 class ResnetAE(nn.Module):
 
-    def __init__(self, z_dim=10,img_dim=32):
+    def __init__(self, z_dim=10,img_dim=32,encoder=None):
         super().__init__()
-        self.encoder = ResNet18Enc(z_dim=z_dim)
+        if encoder is None:
+            self.encoder = ResNet18Enc(z_dim=z_dim)
+        else:
+            self.encoder = encoder
         self.decoder = ResNet18Dec(z_dim=z_dim,img_dim=img_dim)
 
     def forward(self, x):
-        z = self.encoder(x)        
+        z = self.encoder.encode(x)        
         x = self.decoder(z)
         return x
 
