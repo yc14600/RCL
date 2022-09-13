@@ -1,3 +1,4 @@
+from base64 import encode
 import copy
 import argparse
 import numpy as np
@@ -67,8 +68,9 @@ if 'mnist' in args.benchmark:
     args.model_type = 'MLP'
     in_dim = 784
     shape = (1, 28, 28)
-    model = MlpAE(shape=shape, n_classes=args.C,latent_dim=args.z_dim)
     enc_model = encoder_model(input_size = in_dim, shape=shape, latent_dim=args.z_dim)
+    model = MlpAE(shape=shape, n_classes=args.C,latent_dim=args.z_dim,encoder=enc_model)
+    
 elif 'cifar' in args.benchmark: 
     args.model_type == 'resnet'
     enc_model = ResNetEncoder(nclasses=args.C, z_dim=args.z_dim)

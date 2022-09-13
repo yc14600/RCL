@@ -72,13 +72,16 @@ class AEMLPDecoder(nn.Module):
 
 
 class MlpAE(nn.Module):
-    def __init__(self, shape,latent_dim=128, n_classes=10, device="cpu"):
+    def __init__(self, shape,latent_dim=128, n_classes=10, device="cpu",encoder=None):
         """Variational Auto-Encoder Class"""
         super(MlpAE, self).__init__()
         # Encoding Layers
         #e_hidden = 128  # Number of hidden units in the encoder. See AEVB paper page 7, section "Marginal Likelihood"
         self.latent_dim = latent_dim
-        self.encoder = AEMLPEncoder(shape, latent_dim)
+        if encoder is None:
+            self.encoder = AEMLPEncoder(shape, latent_dim)
+        else:
+            self.encoder = encoder
         #self.e_hidden2mean = MLP([e_hidden, latent_dim], last_activation=False)
         #self.e_hidden2logvar = MLP([e_hidden, latent_dim], last_activation=False)
 
@@ -90,7 +93,7 @@ class MlpAE(nn.Module):
         #x = x.view(-1, 784)
 
         # Feed x into Encoder to obtain mean and logvar
-        z = F.relu(self.encoder(x))
+        z = self.encoder.encode(x)
         # mu, logvar = self.e_hidden2mean(x), self.e_hidden2logvar(x)
 
         # # Sample z from latent space using mu and logvar

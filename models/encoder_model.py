@@ -67,7 +67,7 @@ class encoder_model(nn.Module, BaseModel):
         x = self.classifier(x)
         return x
 
-    def get_features(self, x):
+    def encode(self, x):
         x = x.contiguous()
         x = x.view(x.size(0), self._input_size)
         x = self.features(x)
