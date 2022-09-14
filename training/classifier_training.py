@@ -1,9 +1,13 @@
 from typing import Optional, Sequence, List, Union
+from pkg_resources import parse_version
 
+import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
+from torch.utils.data import DataLoader
 
 from avalanche.models.pnn import PNN
+from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import (
     SupervisedPlugin,
@@ -111,4 +115,60 @@ class TrainStrategy(BaseStrategy):
             eval_every=eval_every,
             **base_kwargs
         )
+        def make_train_dataloader(
+                self,
+                num_workers=0,
+                shuffle=True,
+                pin_memory=False,
+                persistent_workers=False,
+                **kwargs
+        ):
+            """Data loader initialization.
+            Called at the start of each learning experience after the dataset
+            adaptation.
+            :param num_workers: number of thread workers for the data loading.
+            :param shuffle: True if the data should be shuffled, False otherwise.
+            :param pin_memory: If True, the data loader will copy Tensors into CUDA
+                pinned memory before returning them. Defaults to True.
+            """
 
+            other_dataloader_args = {}
+
+            if parse_version(torch.__version__) >= parse_version("1.7.0"):
+                other_dataloader_args["persistent_workers"] = persistent_workers
+
+            self.dataloader = TaskBalancedDataLoader(
+                self.adapted_dataset,
+                oversample_small_groups=True,
+                num_workers=num_workers,
+                batch_size=self.train_mb_size,
+                shuffle=shuffle,
+                pin_memory=pin_memory,
+                **other_dataloader_args
+            )
+
+        def make_eval_dataloader(
+                self, num_workers=0, pin_memory=False, persistent_workers=False, **kwargs
+        ):
+            """
+            Initializes the eval data loader.
+            :param num_workers: How many subprocesses to use for data loading.
+                0 means that the data will be loaded in the main process.
+                (default: 0).
+            :param pin_memory: If True, the data loader will copy Tensors into CUDA
+                pinned memory before returning them. Defaults to True.
+            :param kwargs:
+            :return:
+            """
+            other_dataloader_args = {}
+
+            if parse_version(torch.__version__) >= parse_version("1.7.0"):
+                other_dataloader_args["persistent_workers"] = persistent_workers
+
+            self.dataloader = DataLoader(
+                self.adapted_dataset,
+                num_workers=num_workers,
+                batch_size=self.eval_mb_size,
+                pin_memory=pin_memory,
+                **other_dataloader_args
+            )
