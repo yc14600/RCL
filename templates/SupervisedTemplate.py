@@ -187,7 +187,7 @@ class SupervisedTemplate(BaseSGDTemplate):
             self,
             num_workers=0,
             shuffle=True,
-            pin_memory=True,
+            pin_memory=False,
             persistent_workers=False,
             **kwargs
     ):
@@ -216,7 +216,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         )
 
     def make_eval_dataloader(
-            self, num_workers=0, pin_memory=True, persistent_workers=False, **kwargs
+            self, num_workers=0, pin_memory=False, persistent_workers=False, **kwargs
     ):
         """
         Initializes the eval data loader.
@@ -246,11 +246,11 @@ class SupervisedTemplate(BaseSGDTemplate):
         return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
 
     def eval_forward(self):
-        mb_x_2 = copy.deepcopy(self.mb_x)
+        #mb_x_2 = copy.deepcopy(self.mb_x)
 
         representations = self.model.encoder.encode(self.mb_x)
 
-        reconstruction = avalanche_forward(self.model, mb_x_2, self.mb_task_id)
+        reconstruction = avalanche_forward(self.model, self.mb_x, self.mb_task_id)
         return representations, reconstruction
 
 
