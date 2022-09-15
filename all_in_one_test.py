@@ -80,7 +80,10 @@ elif 'cifar' in args.benchmark:
     
     
 # CL Benchmark Creation
-benchmark = benchmarks[args.benchmark](n_experiences=args.T, dataset_root=args.data_path)
+if args.benchmark!='splitcifar110':
+    benchmark = benchmarks[args.benchmark](n_experiences=args.T, dataset_root=args.data_path)
+else:
+    benchmark = benchmarks[args.benchmark](n_experiences=args.T, dataset_root_cifar10=args.data_path,dataset_root_cifar100=args.data_path)
 
 train_stream = benchmark.train_stream
 test_stream = benchmark.test_stream
