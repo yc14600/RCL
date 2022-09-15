@@ -28,7 +28,7 @@ from models.resnet_generator import ResnetAE
 from encoder_decoder_to_image import image_generator
 from utils import *
 
-benchmarks = {'splitmnist':SplitMNIST,'splitcifar10':SplitCIFAR10,\
+benchmarks = {'splitmnist':SplitMNIST,'splitcifar10':SplitCIFAR10, 'splitcifar110':SplitCIFAR110, \
     'splitcifar100':SplitCIFAR100,'splittinyimagenet':SplitTinyImageNet}
 
 parser = argparse.ArgumentParser()

@@ -1,10 +1,10 @@
 
 RUNS=5
-for BENCHMARK in 'splittinyimagenet';
+for BENCHMARK in 'splitmnist';
 do
     
     
-    DVC='cuda:0'
+    DVC='cpu'
     if [ "$BENCHMARK" = "splitmnist" ]; then
         EP=1
         MEM=200
@@ -23,6 +23,12 @@ do
         ZD=512
         T=10
         C=100
+    elif [ "$BENCHMARK" = "splitcifar110" ]; then
+        EP=10
+        MEM=5000
+        ZD=512
+        T=11
+        C=110
     elif [ "$BENCHMARK" = "splittinyimagenet" ]; then
         EP=10
         MEM=10000
@@ -31,7 +37,7 @@ do
         C=200
     fi
     echo $BENCHMARK
-    for STP in 'naive'; #  'gem' 'lwf' 'gdumb' 'ewc' 'si' 'rwalk' 'cwr'  
+    for STP in 'gem'; #  'naive' 'lwf' 'gdumb' 'ewc' 'si' 'rwalk' 'cwr'  
     do
         if [ "$STP" = "agem" ]; then
             RPL="_"
