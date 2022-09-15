@@ -154,6 +154,7 @@ else:
 test_stream_2 = copy.deepcopy(test_stream)
 for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     train_exp_2 = copy.deepcopy(train_exp)
+    torch.nn.init.xavier_uniform_(enc_model.classifier.parameters())
     print("Begin encoder training "+str(e))
     encoder_strategy.train(train_exp)
     encoder_strategy.eval(test_stream)
