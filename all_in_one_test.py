@@ -113,6 +113,11 @@ eval_plugin = EvaluationPlugin(
     benchmark = benchmark
 )
 
+
+if args.load_encoder:
+    enc_model.load_state_dict(torch.load(os.path.join(rpath,'encoder.pt')))
+    torch.nn.init.xavier_uniform_(enc_model.classifier.weight)
+
 if args.fixed_encoder:
     optimizer = SGD(enc_model.classifier.parameters(), lr=args.learning_rate, momentum=0.9)
 else:
@@ -157,10 +162,8 @@ else:
     raise NotImplementedError('Not supported type.')
 
 if args.load_encoder:
-    enc_model.load_state_dict(torch.load(os.path.join(rpath,'encoder.pt')))
     enc_model.features.train()
     enc_model.classifier.train()
-    torch.nn.init.xavier_uniform_(enc_model.classifier.weight)
 
 test_stream_2 = copy.deepcopy(test_stream)
 for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
@@ -170,9 +173,9 @@ for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     encoder_strategy.train(train_exp)
     encoder_strategy.eval(test_stream)
     print("End encoder training "+str(e))
-    for i in enc_model.parameters():
+    for i in enc_model.features.parameters():
     #    i.requires_grad = False
-        print(i[0])
+        print(i[0][0])
         break
 
     #model.encoder.features = enc_model.features
@@ -182,9 +185,9 @@ for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     decoder_strategy.train(train_exp_2)
     print("End decoder training" + str(e))
 
-    for i in enc_model.parameters():
+    for i in enc_model.features.parameters():
     #    i.requires_grad = True
-        print(i[0][1])
+        print(i[0][0])
         break
 
     representations, images, results, labels = decoder_strategy.eval(test_stream_2)
