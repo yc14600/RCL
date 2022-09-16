@@ -5,6 +5,7 @@ import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
 from torch.utils.data import DataLoader
+from collections import defaultdict
 
 from avalanche.models.pnn import PNN
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
@@ -76,6 +77,17 @@ class BaseStrategy(SupervisedTemplate):
             eval_every=eval_every,
             **base_kwargs
         )
+
+        def reset_optimizer(optimizer, model):
+            """Reset the optimizer to update the list of learnable parameters.
+            .. warning::
+                This function fails if the optimizer uses multiple parameter groups.
+            :param optimizer:
+            :param model:
+            :return:
+            """
+            assert len(optimizer.param_groups) == 1
+            optimizer.state = defaultdict(dict)
 
 class TrainStrategy(BaseStrategy):
         def __init__(
