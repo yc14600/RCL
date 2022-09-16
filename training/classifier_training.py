@@ -78,7 +78,16 @@ class BaseStrategy(SupervisedTemplate):
             **base_kwargs
         )
 
-        def reset_optimizer(optimizer, model):
+        def make_optimizer(self):
+            """Optimizer initialization.
+            Called before each training experiene to configure the optimizer.
+            """
+            # we reset the optimizer's state after each experience.
+            # This allows to add new parameters (new heads) and
+            # freezing old units during the model's adaptation phase.
+            self.reset_optimizer(self)
+
+        def reset_optimizer(self):
             """Reset the optimizer to update the list of learnable parameters.
             .. warning::
                 This function fails if the optimizer uses multiple parameter groups.
@@ -86,8 +95,8 @@ class BaseStrategy(SupervisedTemplate):
             :param model:
             :return:
             """
-            assert len(optimizer.param_groups) == 1
-            optimizer.state = defaultdict(dict)
+            #assert len(optimizer.param_groups) == 1
+            self.optimizer.state = defaultdict(dict)
 
 class TrainStrategy(BaseStrategy):
         def __init__(
