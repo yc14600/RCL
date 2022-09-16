@@ -158,7 +158,7 @@ else:
 
 if args.load_encoder:
     enc_model.load_state_dict(torch.load(os.path.join(rpath,'encoder.pt')))
-    model.train()
+    enc_model.train()
     torch.nn.init.xavier_uniform_(enc_model.classifier.weight)
 
 test_stream_2 = copy.deepcopy(test_stream)
