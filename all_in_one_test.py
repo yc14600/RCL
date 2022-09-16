@@ -110,7 +110,7 @@ eval_plugin = EvaluationPlugin(
     StreamConfusionMatrix(num_classes=args.C, save_image=False),
     # add as many metrics as you like
     loggers=[InteractiveLogger(), CSVLogger(log_folder=rpath)],
-    benchmark = benchmark
+    #benchmark = benchmark
 )
 
 
@@ -161,7 +161,7 @@ encoder_strategy = TrainStrategy(args.strategy_type,
 eval_plugin = EvaluationPlugin(
     loss_metrics(minibatch=True, stream=True,experience=True),
     loggers=[InteractiveLogger(), CSVLogger(log_folder=dpath)],
-    benchmark = benchmark
+    #benchmark = benchmark
 )
 if args.decoder_strategy == 'replay':
     decoder_strategy = VAEReplayTraining(model, optimizer=Adam(model.decoder.parameters(), lr=args.learning_rate, weight_decay=1e-5),
