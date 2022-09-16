@@ -49,6 +49,9 @@ parser.add_argument('-zd','--z_dim', default=32, type=int, help='number of laten
 parser.add_argument('-ms','--mem_size', default=100, type=int, help='memory size')
 parser.add_argument('-dvc','--device', default='cpu', type=str, help='device')
 parser.add_argument('-rpl','--replay_strategy', default='replay', type=str, help='replay strategy')
+parser.add_argument('-save','--save_encoder', default=False, type=str2bool, help='save encoder or not')
+parser.add_argument('-load','--load_encoder', default=False, type=str2bool, help='load encoder or not')
+parser.add_argument('-fix','--fixed_encoder', default=False, type=str2bool, help='fixed encoder or not')
 
 
 
@@ -110,7 +113,10 @@ eval_plugin = EvaluationPlugin(
     benchmark = benchmark
 )
 
-optimizer = SGD(enc_model.parameters(), lr=args.learning_rate, momentum=0.9)
+if args.fixed_encoder:
+    optimizer = SGD(enc_model.classifier.parameters(), lr=args.learning_rate, momentum=0.9)
+else:
+    optimizer = SGD(enc_model.parameters(), lr=args.learning_rate, momentum=0.9)
 criterion = CrossEntropyLoss()
 
 if args.replay_strategy == 'replay':
@@ -150,11 +156,15 @@ elif args.decoder_strategy == 'naive':
 else:
     raise NotImplementedError('Not supported type.')
 
+if args.load_encoder:
+    enc_model.load_state_dict(torch.load(os.path.join(rpath,'encoder.pt')))
+    #enc_model.eval()
+    torch.nn.init.xavier_uniform_(enc_model.classifier.parameters())
 
 test_stream_2 = copy.deepcopy(test_stream)
 for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     train_exp_2 = copy.deepcopy(train_exp)
-    torch.nn.init.xavier_uniform_(enc_model.classifier.parameters())
+    
     print("Begin encoder training "+str(e))
     encoder_strategy.train(train_exp)
     encoder_strategy.eval(test_stream)
@@ -200,3 +210,5 @@ for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     results, images = results[indexes], images[indexes]
     image_generator(e+1, images, results,path=dpath,device=args.device)
 
+if args.save_encoder:
+    torch.save(enc_model.state_dict(), os.path.join(rpath,'encoder.pt'))
