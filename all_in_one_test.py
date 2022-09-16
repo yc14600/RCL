@@ -115,8 +115,11 @@ eval_plugin = EvaluationPlugin(
 
 
 if args.load_encoder:
-    enc_model.load_state_dict(torch.load(os.path.join(rpath,'encoder.pt')))
-    torch.nn.init.xavier_uniform_(enc_model.classifier.weight)
+    pt = torch.load(os.path.join(rpath,'encoder.pt'))
+    enc_model.features.load_state_dict(pt['features'])
+    #torch.nn.init.xavier_uniform_(enc_model.classifier.weight)
+    enc_model.features.train()
+
 
 if args.fixed_encoder:
     optimizer = SGD(enc_model.classifier.parameters(), lr=args.learning_rate, momentum=0.9)
@@ -161,9 +164,7 @@ elif args.decoder_strategy == 'naive':
 else:
     raise NotImplementedError('Not supported type.')
 
-if args.load_encoder:
-    enc_model.features.train()
-    enc_model.classifier.train()
+
 
 test_stream_2 = copy.deepcopy(test_stream)
 for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
@@ -177,9 +178,6 @@ for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     #    i.requires_grad = False
         print(i[0][0])
         break
-
-    #model.encoder.features = enc_model.features
-    #decoder_strategy.model = model
 
     print("Begin decoder training"+str(e))
     decoder_strategy.train(train_exp_2)
@@ -215,4 +213,5 @@ for e, (train_exp, test_exp) in enumerate(zip(train_stream, test_stream)):
     image_generator(e+1, images, results,path=dpath,device=args.device)
 
 if args.save_encoder:
-    torch.save(enc_model.state_dict(), os.path.join(rpath,'encoder.pt'))
+    torch.save({'features':enc_model.features.state_dict(),
+                'classifier':enc_model.classifier.state_dict()}, os.path.join(rpath,'encoder.pt'))
