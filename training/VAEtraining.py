@@ -57,7 +57,7 @@ class VAEEWCTraining(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = EvaluationPlugin(
             loggers=[InteractiveLogger()],
-            suppress_warnings=True,
+            #suppress_warnings=True,
         ),
         eval_every=-1,
         **base_kwargs
@@ -139,7 +139,7 @@ class VAELWFTraining(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = EvaluationPlugin(
             loggers=[InteractiveLogger()],
-            suppress_warnings=True,
+            #suppress_warnings=True,
         ),
         eval_every=-1,
         **base_kwargs
@@ -219,7 +219,7 @@ class VAEReplayTraining(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = EvaluationPlugin(
             loggers=[InteractiveLogger()],
-            suppress_warnings=True,
+            #suppress_warnings=True,
         ),
         eval_every=-1,
         **base_kwargs
@@ -298,7 +298,7 @@ class VAENaiveTraining(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = EvaluationPlugin(
             loggers=[InteractiveLogger()],
-            suppress_warnings=True,
+            #suppress_warnings=True,
         ),
         eval_every=-1,
         **base_kwargs
@@ -372,7 +372,7 @@ class VAECWRTraining(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = EvaluationPlugin(
             loggers=[InteractiveLogger()],
-            suppress_warnings=True,
+            #suppress_warnings=True,
         ),
         eval_every=-1,
         **base_kwargs
