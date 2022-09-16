@@ -85,7 +85,7 @@ class BaseStrategy(SupervisedTemplate):
             # we reset the optimizer's state after each experience.
             # This allows to add new parameters (new heads) and
             # freezing old units during the model's adaptation phase.
-            self.reset_optimizer(self)
+            self.reset_optimizer()
 
         def reset_optimizer(self):
             """Reset the optimizer to update the list of learnable parameters.
